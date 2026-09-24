@@ -191,6 +191,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		_, _ = io.WriteString(stderr, "hpatch: "+err.Error()+"\n")
 		return 1
 	}
+	if os.Getenv("CODEX_HPATCH_DISABLE_USER_DATA") == "1" && !gainMode {
+		return runEngine(engineArgs, stdin, stdout, stderr, rootPath, cwd, "")
+	}
 	configDirectory, err := os.UserConfigDir()
 	if err != nil {
 		if gainMode {

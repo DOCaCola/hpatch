@@ -1,3 +1,35 @@
+# hpatch companion for DOCaCola/Codex
+
+This fork maintains the hpatch CLI embedded in
+[DOCaCola/codex](https://github.com/DOCaCola/codex). It is based on yusing's
+hpatch commit `ebf7d6fb57e091b0d55416305897884509bd18ca`, from before the
+upstream project was renamed to [mekugi](https://github.com/yusing/mekugi).
+
+Codex releases bundle the executable; users do not need Go or a separate install.
+The Codex repository pins a full commit of this fork in
+`third_party/hpatch/source.json` and builds only `./cmd/hpatch` with Go 1.26.5.
+
+## Integration contract
+
+With `CODEX_HPATCH_DISABLE_USER_DATA=1`, ordinary CLI operations bypass user
+configuration and metrics. The standalone `gain` command retains its normal
+behavior. Codex uses translation mode to generate an apply-patch document and
+applies it through its own permission and sandbox machinery.
+
+The regression test is `TestCodexModeDoesNotReadUserData`:
+
+```sh
+go test ./cmd/hpatch
+go build -trimpath -o hpatch ./cmd/hpatch
+```
+
+Keep the original Go module path and MIT license. Update the source pin in
+Codex after reviewing changes and running the CLI tests. The router, installer,
+and benchmark material below is inherited upstream reference material; the
+Codex fork does not distribute or require the router.
+
+---
+
 # hpatch
 
 A Codex Responses router that lets agents edit with compact selectors and replacement text instead of emitting full patches.

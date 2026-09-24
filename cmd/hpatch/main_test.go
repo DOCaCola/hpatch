@@ -150,6 +150,7 @@ func TestRootAndCWDOptionsTranslateRootRelativePath(t *testing.T) {
 	}
 
 	for _, cwd := range []string{"nested", filepath.Join(root, "nested")} {
+		relativePath := filepath.Join("nested", "main.go")
 		var stdout, stderr bytes.Buffer
 		exitCode := run(
 			[]string{"translate", "--root", root, "--cwd", cwd},
@@ -157,12 +158,48 @@ func TestRootAndCWDOptionsTranslateRootRelativePath(t *testing.T) {
 			&stdout,
 			&stderr,
 		)
-		if exitCode != 0 || !strings.HasPrefix(stderr.String(), "in nested/main.go ") {
+		if exitCode != 0 || !strings.HasPrefix(stderr.String(), "in "+relativePath+" ") {
 			t.Fatalf("run(cwd %q) = exit %d, stdout %q, stderr %q", cwd, exitCode, stdout.String(), stderr.String())
 		}
-		if !strings.Contains(stdout.String(), "*** Update File: nested/main.go\n") {
+		if !strings.Contains(stdout.String(), "*** Update File: "+relativePath+"\n") {
 			t.Fatalf("translation for cwd %q is not root-relative:\n%s", cwd, stdout.String())
 		}
+	}
+}
+
+func TestCodexModeDoesNotReadUserData(t *testing.T) {
+	configRoot := t.TempDir()
+	t.Setenv("APPDATA", configRoot)
+	t.Setenv("HOME", configRoot)
+	t.Setenv("XDG_CONFIG_HOME", configRoot)
+	t.Setenv("CODEX_HPATCH_DISABLE_USER_DATA", "1")
+
+	configDirectory, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	hpatchConfigDirectory := filepath.Join(configDirectory, "hpatch")
+	if err := os.MkdirAll(hpatchConfigDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hpatchConfigDirectory, "settings.json"), []byte("not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	exitCode := run(
+		[]string{"translate", "--root", root},
+		strings.NewReader("in main.go\ntsel 1 \"package main\"\ntype \"package graph\"\n"),
+		&stdout,
+		&stderr,
+	)
+	if exitCode != 0 || !strings.Contains(stdout.String(), "*** Update File: main.go\n") {
+		t.Fatalf("run() = exit %d, stdout %q, stderr %q", exitCode, stdout.String(), stderr.String())
 	}
 }
 
